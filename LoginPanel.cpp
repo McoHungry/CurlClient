@@ -2,6 +2,7 @@
 #include <QMessageBox>
 #include "cJSON.h"
 #include <curl/curl.h>
+#include <QDebug>
 
 LoginPanel::LoginPanel(QWidget *parent) : QWidget(parent)
 {
@@ -35,15 +36,16 @@ size_t wirte_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
     QByteArray *buf = (QByteArray*)userdata;
     buf->append(ptr, size*nmemb);
+
     return size * nmemb;
 }
 
 void LoginPanel::slotButtonClicked()
 {
-    QString reg = "reg";
+    QString reg = "login";
     QString username = _username->text();
     QString password = _password->text();
-    QString id = "fqwerqwer";
+    QString id = "cttfqwerqwer";
     int age = 18;
     int sex = 1;
     char tel[] = "2312x31213";
@@ -71,21 +73,21 @@ void LoginPanel::slotButtonClicked()
         cJSON_Delete(root);
     }
 
-    //CURL* curl = curl_easy_init();
     CURL* curl = curl_easy_init();
 
     QByteArray responseData;
 
-    curl_easy_setopt(curl, CURLOPT_URL, "127.0.0.1:8080");
-    // set post data
+    curl_easy_setopt(curl, CURLOPT_URL, "http://127.0.0.1:12306");
+    curl_easy_setopt(curl, CURLOPT_POST, 1);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, wirte_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseData);
 
     CURLcode code = curl_easy_perform(curl);
+
     if (code != CURLE_OK)
     {
-        QMessageBox::warning(this, "error", "perform err");
+        QMessageBox::warning(this, "error", "curl_easy_perform err");
         curl_easy_cleanup(curl);
         free(buf);
         return;
@@ -93,11 +95,12 @@ void LoginPanel::slotButtonClicked()
     curl_easy_cleanup(curl);
     free(buf);
 
-    QMessageBox::warning(this, "responseData", QString(responseData));
+    QMessageBox::warning(this, "responseData", responseData);
+
     {
         responseData.append('\0');
-        cJSON* root = cJSON_Parse(responseData.data());
-        cJSON* result = cJSON_GetObjectItem(root, "result");
+        cJSON* r = cJSON_Parse(responseData.data());
+        cJSON* result = cJSON_GetObjectItem(r, "result");
         if (result == NULL)
         {
             QMessageBox::warning(this,"error","unknown err");
@@ -111,9 +114,9 @@ void LoginPanel::slotButtonClicked()
         else
         {
             QMessageBox::warning(this, "no", "no");
-            cJSON* reason = cJSON_GetObjectItem(root, "reason");
+            cJSON* reason = cJSON_GetObjectItem(r, "reason");
             QMessageBox::warning(this, "error", reason->valuestring);
         }
-        cJSON_Delete(root);
+        cJSON_Delete(r);
     }
 }
